@@ -22,7 +22,7 @@
   --am-radius-sm: 12px;
   --am-shadow: 0 2px 10px rgba(0, 0, 0, 0.25);
   --am-shadow-lg: 0 12px 30px rgba(0, 0, 0, 0.45);
-  --am-font: "Poppins", system-ui, "Segoe UI", Roboto, sans-serif;
+ --am-font: "Poppins", system-ui, "Segoe UI", Roboto, "Apple Color Emoji", "Segoe UI Emoji", "Noto Color Emoji", sans-serif;
 }
 
 .am-root {
