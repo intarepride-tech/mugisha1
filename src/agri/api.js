@@ -91,7 +91,11 @@ async function request(path, { method = "GET", body, headers, token, isForm } = 
   }
 
   if (!res.ok || data?.ok === false) {
-    const message = data?.error || data?.message || `Habaye ikosa (${res.status})`;
+    const message =
+      data?.details
+        ? `${data?.error || data?.message || "Habaye ikosa"}: ${data.details}`
+        : data?.error || data?.message || `Habaye ikosa (${res.status})`;
+
     throw new ApiError(message, res.status, data);
   }
 
@@ -99,15 +103,53 @@ async function request(path, { method = "GET", body, headers, token, isForm } = 
 }
 
 // ---- number parsing for free-text chat answers ------------------------------
-
-// "800 kg" -> { quantity: 800, unit: "kg" }; "800" -> { quantity: 800, unit: "kg" }
+// Supports:
+// "800 kg"  -> { quantity: 800, unit: "kg" }
+// "800"     -> { quantity: 800, unit: "kg" }
+// "5 ton"   -> { quantity: 5, unit: "toni" }
+// "ton 5"   -> { quantity: 5, unit: "toni" }
+// "5 toni"  -> { quantity: 5, unit: "toni" }
+// "toni 5"  -> { quantity: 5, unit: "toni" }
 export function parseQuantity(raw) {
-  const str = String(raw || "").trim();
-  const m = str.match(/^([\d]+(?:[.,]\d+)?)\s*(.*)$/);
-  if (!m) return { quantity: null, unit: "kg" };
-  const quantity = parseFloat(m[1].replace(",", "."));
-  const unit = (m[2] || "").trim() || "kg";
-  return { quantity: Number.isFinite(quantity) ? quantity : null, unit };
+  const str = String(raw || "").trim().toLowerCase();
+
+  if (!str) {
+    return { quantity: null, unit: "kg" };
+  }
+
+  // Number first: "850 kg", "5 ton", "5 toni", "850"
+  let m = str.match(/^([\d]+(?:[.,]\d+)?)\s*(.*)$/);
+
+  if (m) {
+    const quantity = parseFloat(m[1].replace(",", "."));
+    const rawUnit = (m[2] || "").trim();
+
+    if (/^(ton|toni)$/i.test(rawUnit)) {
+      return {
+        quantity: Number.isFinite(quantity) ? quantity : null,
+        unit: "toni",
+      };
+    }
+
+    return {
+      quantity: Number.isFinite(quantity) ? quantity : null,
+      unit: rawUnit || "kg",
+    };
+  }
+
+  // Unit first: "ton 5", "toni 5"
+  m = str.match(/^(ton|toni)\s*([\d]+(?:[.,]\d+)?)$/i);
+
+  if (m) {
+    const quantity = parseFloat(m[2].replace(",", "."));
+
+    return {
+      quantity: Number.isFinite(quantity) ? quantity : null,
+      unit: "toni",
+    };
+  }
+
+  return { quantity: null, unit: "kg" };
 }
 
 // "700 Frw" -> 700; "700" -> 700
