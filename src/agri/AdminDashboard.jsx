@@ -35,9 +35,15 @@ function LoginScreen({ onLoggedIn }) {
 
   async function submit(e) {
     e.preventDefault();
-    if (!value.trim()) return;
+
+    if (!value.trim()) {
+      setError("Andika PIN.");
+      return;
+    }
+
     setChecking(true);
     setError(null);
+
     try {
       await verifyToken(value.trim());
       setToken(value.trim());
@@ -45,7 +51,7 @@ function LoginScreen({ onLoggedIn }) {
     } catch (err) {
       setError(
         err instanceof ApiError && err.status === 401
-          ? "Token siyo. Ongera ugerageze."
+          ? "PIN siyo. Ongera ugerageze."
           : err.message || "Ntibishoboka kwinjira."
       );
     } finally {
@@ -56,25 +62,50 @@ function LoginScreen({ onLoggedIn }) {
   return (
     <div className="am-admin-root">
       <div className="am-login-card">
-        <h2>🔐 Admin</h2>
-        <p>Injiza admin token kugira ngo ubone dashboard.</p>
+        <h2>🔐 Zao Deal Admin</h2>
+
+        <p>Andika PIN kugira ngo ubone dashboard.</p>
+
         <form onSubmit={submit}>
           <input
             type="password"
-            placeholder="Admin token"
+            inputMode="numeric"
+            placeholder="Admin PIN"
             value={value}
             onChange={(e) => setValue(e.target.value)}
             autoFocus
           />
+
           {error && (
-            <p style={{ color: "var(--am-danger)", fontSize: 13, marginBottom: 10 }}>{error}</p>
+            <p
+              style={{
+                color: "var(--am-danger)",
+                fontSize: 13,
+                marginBottom: 10,
+              }}
+            >
+              {error}
+            </p>
           )}
-          <button className="am-btn" type="submit" disabled={checking} style={{ width: "100%" }}>
+
+          <button
+            className="am-btn"
+            type="submit"
+            disabled={checking}
+            style={{ width: "100%" }}
+          >
             {checking ? "Turimo kureba..." : "Injira"}
           </button>
         </form>
+
         <p style={{ marginTop: 14 }}>
-          <a href="?" style={{ fontSize: 12, color: "var(--am-text-soft)" }}>
+          <a
+            href="?"
+            style={{
+              fontSize: 12,
+              color: "var(--am-text-soft)",
+            }}
+          >
             ← Subira ku isoko
           </a>
         </p>

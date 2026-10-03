@@ -1,0 +1,17 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" width="64" height="64">
+  <defs>
+    <radialGradient id="beanShade" cx="0.35" cy="0.35" r="0.7">
+      <stop offset="0%" stop-color="#c98a5a"/>
+      <stop offset="60%" stop-color="#8b4a2b"/>
+      <stop offset="100%" stop-color="#5c2e18"/>
+    </radialGradient>
+  </defs>
+  <!-- back bean -->
+  <ellipse cx="40" cy="30" rx="16" ry="12" fill="#6b3418" transform="rotate(-15 40 30)"/>
+  <!-- front bean -->
+  <ellipse cx="24" cy="36" rx="18" ry="13" fill="url(#beanShade)" transform="rotate(-15 24 36)"/>
+  <!-- bean seam -->
+  <path d="M10 34 Q 24 44, 38 34" stroke="#3d1c0c" stroke-width="1.6" fill="none" opacity="0.7"/>
+  <!-- highlight -->
+  <ellipse cx="18" cy="30" rx="5" ry="2.5" fill="#f0c8a4" opacity="0.55" transform="rotate(-15 18 30)"/>
+</svg>

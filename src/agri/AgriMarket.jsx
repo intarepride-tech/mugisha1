@@ -38,11 +38,8 @@ const CROP_TYPES = {
     aliases: [
       "ibishyimbo",
       "gurugari",
-      "koluta",
-      "colta",
       "pasabu",
       "imvange",
-      "shyushya",
     ],
   },
 
@@ -61,6 +58,40 @@ function cleanText(value) {
     .toLowerCase()
     .replace(/[’']/g, "")
     .replace(/\s+/g, " ");
+}
+
+const BEAN_VARIETIES = {
+  shyushya: {
+    name: "Shyushya",
+    aliases: ["shyushya"],
+    image: "/images/Shyushya.png",
+  },
+  colta: {
+    name: "Colta",
+    aliases: ["colta", "koluta"],
+    image: "/images/colta.png",
+  },
+  zahabu: {
+    name: "Zahabu",
+    aliases: ["zahabu"],
+    image: "/images/zahabu.png",
+  },
+  mutiki: {
+    name: "Mutiki",
+    aliases: ["mutiki"],
+    image: "/images/Mutiki.png",
+  },
+};
+function findBeanVariety(value) {
+  const cleaned = cleanText(value);
+
+  for (const variety of Object.values(BEAN_VARIETIES)) {
+    if (variety.aliases.includes(cleaned)) {
+      return variety;
+    }
+  }
+
+  return null;
 }
 
 function findCrop(value) {
@@ -144,6 +175,21 @@ const QUESTIONS = [
   },
 
   {
+    key: "variety",
+    text: "Ok, ibishyimbo ufite ni bihe: Shyushya, Colta, Zahabu cg Mutiki? 🫘",
+    placeholder: "Urugero: Mutiki",
+    validate: (value) => {
+      const variety = findBeanVariety(value);
+
+      if (!variety) {
+        return "Hitamo ubwoko bumwe: Shyushya, Colta, Zahabu cg Mutiki.";
+      }
+
+      return null;
+    },
+  },
+
+  {
     key: "quantity",
     text: "Ufite ibiro bingahe?",
     placeholder: "Urugero: 850 kg",
@@ -218,6 +264,42 @@ function playBotSound() {
   }
 }
 
+
+function ZaoDealLogo({ size = 28 }) {
+  return (
+    <svg
+      width={size}
+      height={size}
+      viewBox="0 0 40 40"
+      xmlns="http://www.w3.org/2000/svg"
+      aria-label="Zao Deal"
+      role="img"
+      style={{ display: "block", flexShrink: 0 }}
+    >
+      <path
+        d="M20 34C20 27 20 22 20 17"
+        stroke="#18864B"
+        strokeWidth="3"
+        strokeLinecap="round"
+      />
+      <path
+        d="M20 20C12 20 7 16 7 9C14 9 20 12 20 20Z"
+        fill="#7BCB32"
+      />
+      <path
+        d="M20 18C20 10 26 5 34 6C34 14 29 19 20 18Z"
+        fill="#18864B"
+      />
+      <path
+        d="M15 34H25"
+        stroke="#F4B400"
+        strokeWidth="3"
+        strokeLinecap="round"
+      />
+    </svg>
+  );
+}
+
 /* -------------------------------------------------------------------------- */
 /* UI components                                                              */
 /* -------------------------------------------------------------------------- */
@@ -225,7 +307,7 @@ function playBotSound() {
 function TypingRow() {
   return (
     <div className="am-bubble-row assistant">
-      <span className="am-avatar">🤖</span>
+      <span className="am-avatar"><ZaoDealLogo size={26} /></span>
 
       <div className="am-bubble assistant">
         <span className="am-typing">
@@ -243,7 +325,7 @@ function MessageRow({ msg }) {
 
   return (
     <div className={`am-bubble-row ${isUser ? "user" : "assistant"}`}>
-      {!isUser && <span className="am-avatar">🤖</span>}
+      {!isUser && <span className="am-avatar"><ZaoDealLogo size={26} /></span>}
 
       <div className={`am-bubble ${isUser ? "user" : "assistant"}`}>
         {msg.text}
@@ -449,7 +531,13 @@ function ZaoDealChat({ onExit }) {
 
       setStep(nextStep);
 
-      await pushBot(QUESTIONS[nextStep].text, 650);
+      if (crop.name === "Ibishyimbo") {
+        await pushBot(QUESTIONS[nextStep].text, 650);
+      } else {
+        const quantityStep = nextStep + 1;
+        setStep(quantityStep);
+        await pushBot(QUESTIONS[quantityStep].text, 650);
+      }
 
       return;
     }
@@ -463,6 +551,41 @@ function ZaoDealChat({ onExit }) {
     };
 
     setAnswers(nextAnswers);
+
+    /* Bean variety response */
+
+    if (question.key === "variety") {
+      const variety = findBeanVariety(value);
+
+      if (!variety) {
+        await pushBot(
+          "Hitamo ubwoko bumwe: Shyushya, Colta, Zahabu cg Mutiki.",
+          350
+        );
+        return;
+      }
+
+      const nextAnswersWithVariety = {
+        ...nextAnswers,
+        product: "Ibishyimbo",
+        variety: variety.name,
+        media: variety.image,
+        mediaType: "image/jpeg",
+      };
+
+      setAnswers(nextAnswersWithVariety);
+
+      await pushBot(
+        `Ni byiza! 🫘 Ibishyimbo bya ${variety.name}.`,
+        500
+      );
+
+      const quantityStep = step + 1;
+      setStep(quantityStep);
+
+      await pushBot(QUESTIONS[quantityStep].text, 650);
+      return;
+    }
 
     /* Quantity response */
 
@@ -605,8 +728,17 @@ function ZaoDealChat({ onExit }) {
               </button>
 
               <div>
-                <p className="am-chat-title">
-                  🤖 Zao Deal
+                <p
+                  className="am-chat-title"
+                  style={{
+                    display: "flex",
+                    alignItems: "center",
+                    gap: 7,
+                    color: "#18864B",
+                  }}
+                >
+                  <ZaoDealLogo size={25} />
+                  <span>Zao Deal</span>
                 </p>
 
                 <p className="am-chat-progress">
@@ -643,6 +775,7 @@ function ZaoDealChat({ onExit }) {
 
                       <span className="am-summary-value">
                         {crop.emoji} {crop.name}
+                        {answers.variety ? ` — ${answers.variety}` : ""}
                       </span>
                     </div>
 
@@ -763,8 +896,17 @@ function ZaoDealChat({ onExit }) {
             </button>
 
             <div>
-              <p className="am-chat-title">
-                🤖 Zao Deal
+              <p
+                className="am-chat-title"
+                style={{
+                  display: "flex",
+                  alignItems: "center",
+                  gap: 7,
+                  color: "#18864B",
+                }}
+              >
+                <ZaoDealLogo size={25} />
+                <span>Zao Deal</span>
               </p>
 
               <p className="am-chat-progress">
