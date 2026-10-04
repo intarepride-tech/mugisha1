@@ -170,6 +170,7 @@ export function buildOfferPayload(a) {
     name: a.name?.trim(),
     whatsapp: a.whatsapp?.trim(),
     product: a.product?.trim(),
+    variety: a.variety?.trim() || null,
     quantity,
     unit,
     location: a.location?.trim(),
