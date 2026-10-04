@@ -32,14 +32,18 @@ const CROP_TYPES = {
     ],
   },
 
-  ibishyimbo: {
+    ibishyimbo: {
     name: "Ibishyimbo",
-    emoji: "🫘",
+    emoji: "🌱",
+    icon: "/ibishyimbo.svg",
     aliases: [
       "ibishyimbo",
       "gurugari",
+      "koluta",
+      "colta",
       "pasabu",
       "imvange",
+      "shyushya",
     ],
   },
 
@@ -58,40 +62,6 @@ function cleanText(value) {
     .toLowerCase()
     .replace(/[’']/g, "")
     .replace(/\s+/g, " ");
-}
-
-const BEAN_VARIETIES = {
-  shyushya: {
-    name: "Shyushya",
-    aliases: ["shyushya"],
-    image: "/images/Shyushya.png",
-  },
-  colta: {
-    name: "Colta",
-    aliases: ["colta", "koluta"],
-    image: "/images/colta.png",
-  },
-  zahabu: {
-    name: "Zahabu",
-    aliases: ["zahabu"],
-    image: "/images/zahabu.png",
-  },
-  mutiki: {
-    name: "Mutiki",
-    aliases: ["mutiki"],
-    image: "/images/Mutiki.png",
-  },
-};
-function findBeanVariety(value) {
-  const cleaned = cleanText(value);
-
-  for (const variety of Object.values(BEAN_VARIETIES)) {
-    if (variety.aliases.includes(cleaned)) {
-      return variety;
-    }
-  }
-
-  return null;
 }
 
 function findCrop(value) {
@@ -113,12 +83,14 @@ function formatCrop(value) {
     return {
       name: String(value || "").trim(),
       emoji: "",
+      icon: "",
     };
   }
 
   return {
     name: crop.name,
     emoji: crop.emoji,
+    icon: crop.icon || "",
   };
 }
 
@@ -168,25 +140,17 @@ function validateRequired(value, message) {
 
 const QUESTIONS = [
   {
+    key: "name",
+    text: "Ni irihe zina ushaka gukoresha?",
+    placeholder: "Amazina yawe",
+    validate: (value) =>
+      validateRequired(value, "Andika amazina yawe yose."),
+  },
+  {
     key: "product",
     text: "Umusaruro/Imyaka ugurisha ni uwuhe? 🌾",
     placeholder: "Urugero: Ibigori",
     validate: validateProduct,
-  },
-
-  {
-    key: "variety",
-    text: "Ok, ibishyimbo ufite ni bihe: Shyushya, Colta, Zahabu cg Mutiki? 🫘",
-    placeholder: "Urugero: Mutiki",
-    validate: (value) => {
-      const variety = findBeanVariety(value);
-
-      if (!variety) {
-        return "Hitamo ubwoko bumwe: Shyushya, Colta, Zahabu cg Mutiki.";
-      }
-
-      return null;
-    },
   },
 
   {
@@ -211,15 +175,7 @@ const QUESTIONS = [
       validateRequired(value, "Andika aho umusaruro uherereye."),
   },
 
-  {
-    key: "name",
-    text: "Andika amazina yawe yose.",
-    placeholder: "Amazina yawe",
-    validate: (value) =>
-      validateRequired(value, "Andika amazina yawe yose."),
-  },
-
-  {
+   {
     key: "whatsapp",
     text: "Numero ya telefone wakoresha tuvugana ni iyihe? 📱",
     placeholder: "07XX XXX XXX",
@@ -264,42 +220,6 @@ function playBotSound() {
   }
 }
 
-
-function ZaoDealLogo({ size = 28 }) {
-  return (
-    <svg
-      width={size}
-      height={size}
-      viewBox="0 0 40 40"
-      xmlns="http://www.w3.org/2000/svg"
-      aria-label="Zao Deal"
-      role="img"
-      style={{ display: "block", flexShrink: 0 }}
-    >
-      <path
-        d="M20 34C20 27 20 22 20 17"
-        stroke="#18864B"
-        strokeWidth="3"
-        strokeLinecap="round"
-      />
-      <path
-        d="M20 20C12 20 7 16 7 9C14 9 20 12 20 20Z"
-        fill="#7BCB32"
-      />
-      <path
-        d="M20 18C20 10 26 5 34 6C34 14 29 19 20 18Z"
-        fill="#18864B"
-      />
-      <path
-        d="M15 34H25"
-        stroke="#F4B400"
-        strokeWidth="3"
-        strokeLinecap="round"
-      />
-    </svg>
-  );
-}
-
 /* -------------------------------------------------------------------------- */
 /* UI components                                                              */
 /* -------------------------------------------------------------------------- */
@@ -307,7 +227,7 @@ function ZaoDealLogo({ size = 28 }) {
 function TypingRow() {
   return (
     <div className="am-bubble-row assistant">
-      <span className="am-avatar"><ZaoDealLogo size={26} /></span>
+      <span className="am-avatar">🤖</span>
 
       <div className="am-bubble assistant">
         <span className="am-typing">
@@ -325,7 +245,7 @@ function MessageRow({ msg }) {
 
   return (
     <div className={`am-bubble-row ${isUser ? "user" : "assistant"}`}>
-      {!isUser && <span className="am-avatar"><ZaoDealLogo size={26} /></span>}
+      {!isUser && <span className="am-avatar">🤖</span>}
 
       <div className={`am-bubble ${isUser ? "user" : "assistant"}`}>
         {msg.text}
@@ -418,12 +338,9 @@ function ZaoDealChat({ onExit }) {
     startedRef.current = true;
 
     async function start() {
-      await pushBot("Muraho 👋", 350);
-
-      await pushBot(
-        "Ndi Zao Deal. Tugura imyaka. Turimo gushaka abacuruzi bafite imyaka bagurisha.",
-        650
-      );
+          await pushBot("Muraho 👋", 350);
+      await pushBot("Tugiye kwandikirana.", 650);
+      await pushBot(QUESTIONS[0].text, 650);
 
       await pushBot(QUESTIONS[0].text, 650);
     }
@@ -510,9 +427,7 @@ function ZaoDealChat({ onExit }) {
 
       value = crop.name;
 
-      const cropMessage = crop.emoji
-        ? `Ni byiza! ${crop.emoji} ${crop.name}.`
-        : `Ni byiza! ${crop.name}.`;
+      const cropMessage = `Ni byiza! ${crop.name}.`;
 
       pushUser(rawValue);
 
@@ -531,13 +446,7 @@ function ZaoDealChat({ onExit }) {
 
       setStep(nextStep);
 
-      if (crop.name === "Ibishyimbo") {
-        await pushBot(QUESTIONS[nextStep].text, 650);
-      } else {
-        const quantityStep = nextStep + 1;
-        setStep(quantityStep);
-        await pushBot(QUESTIONS[quantityStep].text, 650);
-      }
+      await pushBot(QUESTIONS[nextStep].text, 650);
 
       return;
     }
@@ -552,41 +461,6 @@ function ZaoDealChat({ onExit }) {
 
     setAnswers(nextAnswers);
 
-    /* Bean variety response */
-
-    if (question.key === "variety") {
-      const variety = findBeanVariety(value);
-
-      if (!variety) {
-        await pushBot(
-          "Hitamo ubwoko bumwe: Shyushya, Colta, Zahabu cg Mutiki.",
-          350
-        );
-        return;
-      }
-
-      const nextAnswersWithVariety = {
-        ...nextAnswers,
-        product: "Ibishyimbo",
-        variety: variety.name,
-        media: variety.image,
-        mediaType: "image/jpeg",
-      };
-
-      setAnswers(nextAnswersWithVariety);
-
-      await pushBot(
-        `Ni byiza! 🫘 Ibishyimbo bya ${variety.name}.`,
-        500
-      );
-
-      const quantityStep = step + 1;
-      setStep(quantityStep);
-
-      await pushBot(QUESTIONS[quantityStep].text, 650);
-      return;
-    }
-
     /* Quantity response */
 
     if (question.key === "quantity") {
@@ -594,9 +468,7 @@ function ZaoDealChat({ onExit }) {
 
       const quantity = parseQuantity(value);
 
-      const cropLabel = crop.emoji
-        ? `${crop.emoji} ${crop.name}`
-        : crop.name;
+     const cropLabel = crop.name;
 
       await pushBot(
         `${quantity.quantity} ${quantity.unit} ${cropLabel}, ndabyakiriye. 👍`,
@@ -653,22 +525,20 @@ function ZaoDealChat({ onExit }) {
       return;
     }
 
-    /* Name response */
-
+        /* Name response */
     if (question.key === "name") {
       const firstName = value.split(/\s+/)[0];
-
       await pushBot(
         `Murakoze ${firstName}! 😊`,
         500
       );
-
+      await pushBot(
+        "Zao Deal. Tugura imyaka. Turimo gushaka abacuruzi bafite imyaka bagurisha.",
+        650
+      );
       const nextStep = step + 1;
-
       setStep(nextStep);
-
       await pushBot(QUESTIONS[nextStep].text, 650);
-
       return;
     }
 
@@ -728,17 +598,8 @@ function ZaoDealChat({ onExit }) {
               </button>
 
               <div>
-                <p
-                  className="am-chat-title"
-                  style={{
-                    display: "flex",
-                    alignItems: "center",
-                    gap: 7,
-                    color: "#18864B",
-                  }}
-                >
-                  <ZaoDealLogo size={25} />
-                  <span>Zao Deal</span>
+                <p className="am-chat-title">
+                  🤖 Zao Deal
                 </p>
 
                 <p className="am-chat-progress">
@@ -774,8 +635,12 @@ function ZaoDealChat({ onExit }) {
                       </span>
 
                       <span className="am-summary-value">
-                        {crop.emoji} {crop.name}
-                        {answers.variety ? ` — ${answers.variety}` : ""}
+                       {crop.icon ? (
+  <img src={crop.icon} alt={crop.name} className="am-crop-icon" />
+) : (
+  crop.emoji
+)}{" "}
+{crop.name}
                       </span>
                     </div>
 
@@ -896,17 +761,8 @@ function ZaoDealChat({ onExit }) {
             </button>
 
             <div>
-              <p
-                className="am-chat-title"
-                style={{
-                  display: "flex",
-                  alignItems: "center",
-                  gap: 7,
-                  color: "#18864B",
-                }}
-              >
-                <ZaoDealLogo size={25} />
-                <span>Zao Deal</span>
+              <p className="am-chat-title">
+                🤖 Zao Deal
               </p>
 
               <p className="am-chat-progress">
