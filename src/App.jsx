@@ -2,9 +2,11 @@ import AgriMarket from "./agri/AgriMarket";
 import AdminDashboard from "./agri/AdminDashboard";
 
 function App() {
-  const path = window.location.pathname.replace(/\/+$/, "") || "/";
+  const pathname = window.location.pathname.replace(/\/+$/, "") || "/";
 
-  if (path.toLowerCase() === "/stock") {
+  // Private Zao Deal stock/admin page.
+  // Visiting /stock opens the admin dashboard.
+  if (pathname === "/stock") {
     return <AdminDashboard />;
   }
 

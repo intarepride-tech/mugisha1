@@ -166,19 +166,17 @@ export function parsePrice(raw) {
 // `a` is the chat's answers object, keyed by question.key (see AgriMarket.jsx)
 export function buildOfferPayload(a) {
   const { quantity, unit } = parseQuantity(a.quantity);
-return {
+  return {
     name: a.name?.trim(),
     whatsapp: a.whatsapp?.trim(),
     product: a.product?.trim(),
-    variety: a.variety?.trim(),
     quantity,
     unit,
     location: a.location?.trim(),
     pricePerKg: parsePrice(a.pricePerKg),
     mediaUrl: a.media || null,
-mediaType: a.mediaType || null,
-variety: a.variety?.trim() || null,
-};
+    mediaType: a.mediaType || null,
+  };
 }
 
 export function buildNeedPayload(a) {
