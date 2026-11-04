@@ -1,0 +1,7 @@
+<?xml version='1.0' encoding='utf-8'?>
+<resources>
+    <string name="app_name">Zao Deal</string>
+    <string name="title_activity_main">Zao Deal</string>
+    <string name="package_name">com.zaodeal.app</string>
+    <string name="custom_url_scheme">com.zaodeal.app</string>
+</resources>
