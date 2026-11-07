@@ -24,6 +24,194 @@ function verifyToken(token) {
   return adminUsers(token);
 }
 
+/* -------------------------------------------------------------------------- */
+/* Print helpers                                                              */
+/* -------------------------------------------------------------------------- */
+
+function escapeHTML(value) {
+  return String(value ?? "")
+    .replace(/&/g, "&amp;")
+    .replace(/</g, "&lt;")
+    .replace(/>/g, "&gt;")
+    .replace(/"/g, "&quot;")
+    .replace(/'/g, "&#39;");
+}
+
+function formatDate(value) {
+  if (!value) return "—";
+  try {
+    return new Date(value).toLocaleString("rw-RW", {
+      year: "numeric",
+      month: "2-digit",
+      day: "2-digit",
+      hour: "2-digit",
+      minute: "2-digit",
+    });
+  } catch {
+    return String(value);
+  }
+}
+
+const PRINT_STYLES = `
+  @page { size: A4; margin: 14mm 12mm; }
+  * { box-sizing: border-box; }
+  body {
+    font-family: -apple-system, "Segoe UI", Roboto, "Noto Sans", sans-serif;
+    color: #111;
+    margin: 0;
+    font-size: 12px;
+  }
+  h1 { font-size: 18px; margin: 0 0 4px; }
+  h2 { font-size: 14px; margin: 18px 0 6px; }
+  .meta { color: #555; font-size: 11px; margin-bottom: 14px; }
+  .brand { color: #18864B; font-weight: 700; }
+  table { width: 100%; border-collapse: collapse; margin-top: 6px; }
+  th, td {
+    border: 1px solid #d0d5da;
+    padding: 6px 7px;
+    text-align: left;
+    vertical-align: top;
+    font-size: 11px;
+  }
+  th { background: #f0f4f7; font-weight: 700; }
+  tr { page-break-inside: avoid; }
+  .kv { width: 100%; border-collapse: collapse; margin-top: 6px; }
+  .kv th { width: 34%; background: #f0f4f7; }
+  .badge { display: inline-block; padding: 1px 7px; border-radius: 8px; border: 1px solid #c8d0d8; font-size: 10.5px; }
+  .footer { margin-top: 18px; font-size: 10px; color: #666; text-align: center; }
+  @media print {
+    .no-print { display: none !important; }
+  }
+`;
+
+function printHTML(title, bodyHTML) {
+  const win = window.open("", "_blank", "width=900,height=700");
+  if (!win) {
+    alert("Reba niba browser yemera pop-up kugira ngo dushobore gucapa.");
+    return;
+  }
+
+  const doc = `<!doctype html>
+<html lang="rw">
+<head>
+<meta charset="utf-8" />
+<title>${escapeHTML(title)}</title>
+<style>${PRINT_STYLES}</style>
+</head>
+<body>
+${bodyHTML}
+<div class="footer">Zao Deal — Admin Report · ${escapeHTML(formatDate(new Date().toISOString()))}</div>
+</body>
+</html>`;
+
+  win.document.open();
+  win.document.write(doc);
+  win.document.close();
+
+  win.focus();
+  // Give the browser a tick to lay out, then print.
+  setTimeout(() => {
+    try {
+      win.print();
+    } catch {
+      /* ignore */
+    }
+  }, 250);
+
+  win.addEventListener("afterprint", () => {
+    try {
+      win.close();
+    } catch {
+      /* ignore */
+    }
+  });
+}
+
+function printAllPosts(posts) {
+  const rows = posts
+    .map(
+      (p) => `
+        <tr>
+          <td>${escapeHTML(p.product || "—")}</td>
+          <td>${escapeHTML(`${p.quantity ?? ""} ${p.unit || "kg"}`.trim())}</td>
+          <td>${escapeHTML(p.location || "—")}</td>
+          <td>${p.price_per_kg != null ? `${escapeHTML(p.price_per_kg)} Frw/kg` : "—"}</td>
+          <td>${escapeHTML(p.name || "—")}</td>
+          <td>${escapeHTML(p.whatsapp || "—")}</td>
+          <td><span class="badge">${escapeHTML(p.status || "new")}</span></td>
+          <td>${escapeHTML(formatDate(p.created_at))}</td>
+        </tr>`
+    )
+    .join("");
+
+  printHTML(
+    "Zao Deal — Posts zose",
+    `
+      <h1>Zao Deal — <span class="brand">Posts zose</span></h1>
+      <div class="meta">
+        Umubare w'ama posts: <strong>${posts.length}</strong>
+      </div>
+      <table>
+        <thead>
+          <tr>
+            <th>Umusaruro</th>
+            <th>Ingano</th>
+            <th>Aho biherereye</th>
+            <th>Igiciro</th>
+            <th>Umuhinzi</th>
+            <th>Telefoni</th>
+            <th>Status</th>
+            <th>Igihe</th>
+          </tr>
+        </thead>
+        <tbody>${rows}</tbody>
+      </table>
+    `
+  );
+}
+
+function printSinglePost(post) {
+  const rows = [
+    ["Umusaruro", post.product || "—"],
+    ["Ingano", `${post.quantity ?? ""} ${post.unit || "kg"}`.trim() || "—"],
+    ["Aho biherereye", post.location || "—"],
+    [
+      "Igiciro usaba",
+      post.price_per_kg != null ? `${post.price_per_kg} Frw/kg` : "—",
+    ],
+    ["Umuhinzi", post.name || "—"],
+    ["Telefoni", post.whatsapp || "—"],
+    ["Status", post.status || "new"],
+    ["Yatanzwe", formatDate(post.created_at)],
+    ["Yahinduwe", formatDate(post.updated_at)],
+  ]
+    .map(
+      ([k, v]) => `
+        <tr>
+          <th>${escapeHTML(k)}</th>
+          <td>${escapeHTML(v)}</td>
+        </tr>`
+    )
+    .join("");
+
+  printHTML(
+    `Zao Deal — ${post.product || "Post"}`,
+    `
+      <h1>Zao Deal — <span class="brand">Raporo y'umusaruro</span></h1>
+      <div class="meta">
+        Post ID: <strong>${escapeHTML(post.id || "—")}</strong>
+      </div>
+      <table class="kv">
+        <tbody>${rows}</tbody>
+      </table>
+    `
+  );
+}
+
+/* -------------------------------------------------------------------------- */
+/* Login                                                                      */
+/* -------------------------------------------------------------------------- */
+
 function LoginScreen({ onLoggedIn }) {
   const [value, setValue] = useState("");
   const [checking, setChecking] = useState(false);
@@ -93,22 +281,14 @@ function LoginScreen({ onLoggedIn }) {
             {checking ? "Turimo kureba..." : "Injira"}
           </button>
         </form>
-
-        <p style={{ marginTop: 14 }}>
-          <a
-            href="?"
-            style={{
-              fontSize: 12,
-              color: "var(--am-text-soft)",
-            }}
-          >
-            ← Subira ku isoko
-          </a>
-        </p>
       </div>
     </div>
   );
 }
+
+/* -------------------------------------------------------------------------- */
+/* Overview                                                                   */
+/* -------------------------------------------------------------------------- */
 
 function OverviewTab() {
   const [stats, setStats] = useState(null);
@@ -164,6 +344,10 @@ function OverviewTab() {
   );
 }
 
+/* -------------------------------------------------------------------------- */
+/* Posts                                                                      */
+/* -------------------------------------------------------------------------- */
+
 function PostsTab() {
   const [posts, setPosts] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -206,6 +390,19 @@ function PostsTab() {
     <>
       {error && <div className="am-error-banner">{error}</div>}
 
+      <div className="am-admin-card" style={{ display: "flex", gap: 8, flexWrap: "wrap", alignItems: "center" }}>
+        <strong style={{ fontSize: 13.5, flex: 1 }}>
+          🖨️ Raporo
+        </strong>
+        <button
+          className="am-btn"
+          disabled={posts.length === 0}
+          onClick={() => printAllPosts(posts)}
+        >
+          Chapisha posts zose ({posts.length})
+        </button>
+      </div>
+
       {posts.length === 0 ? (
         <p className="am-empty">Nta posts ahari.</p>
       ) : (
@@ -222,14 +419,18 @@ function PostsTab() {
                 {p.type === "offer" && p.price_per_kg != null && (
                   <p className="am-post-line">💰 {p.price_per_kg} Frw/kg</p>
                 )}
-                {/* users.name holds the farmer's own name for offers, and the
-                    business name for needs — same column, different meaning. */}
                 <p className="am-post-line">{p.type === "offer" ? "👤" : "🏢"} {p.name || "—"}</p>
                 <p className="am-mono">☎ {p.whatsapp || "—"}</p>
               </div>
               <span className={`am-status-pill ${p.status || "new"}`}>{p.status || "new"}</span>
             </div>
             <div className="am-admin-row-actions">
+              <button
+                className="am-btn secondary"
+                onClick={() => printSinglePost(p)}
+              >
+                🖨️ Chapisha
+              </button>
               <button
                 className="am-btn danger"
                 disabled={busyId === p.id}
@@ -244,6 +445,10 @@ function PostsTab() {
     </>
   );
 }
+
+/* -------------------------------------------------------------------------- */
+/* Users                                                                      */
+/* -------------------------------------------------------------------------- */
 
 function UsersTab() {
   const [users, setUsers] = useState([]);
@@ -319,6 +524,10 @@ function UsersTab() {
   );
 }
 
+/* -------------------------------------------------------------------------- */
+/* Reports                                                                    */
+/* -------------------------------------------------------------------------- */
+
 function ReportsTab() {
   const [reports, setReports] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -368,6 +577,10 @@ function ReportsTab() {
     ))
   );
 }
+
+/* -------------------------------------------------------------------------- */
+/* Shell                                                                      */
+/* -------------------------------------------------------------------------- */
 
 const TABS = [
   { key: "overview", label: "Incamake", Comp: OverviewTab },
