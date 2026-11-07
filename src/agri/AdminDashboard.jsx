@@ -6,10 +6,6 @@ import {
   adminReports,
   adminDeletePost,
   adminDeleteUser,
-  adminSetUserBlocked,
-  adminMatchPosts,
-  adminCloseDeal,
-  adminCloseReport,
   ApiError,
 } from "./api";
 import { getToken, setToken, clearToken } from "./tokenStore";
@@ -126,8 +122,11 @@ function OverviewTab() {
         const reports = pickList(reportsData, "reports");
         setStats({
           totalPosts: posts.length,
-          waiting: posts.filter((p) => p.status === "waiting").length,
-          matched: posts.filter((p) => p.status === "matched").length,
+          newPosts: posts.filter((p) => p.status === "new").length,
+          reviewing: posts.filter((p) => p.status === "reviewing").length,
+          contacted: posts.filter((p) => p.status === "contacted").length,
+          negotiating: posts.filter((p) => p.status === "negotiating").length,
+          bought: posts.filter((p) => p.status === "bought").length,
           closed: posts.filter((p) => p.status === "closed").length,
           totalUsers: users.length,
           blockedUsers: users.filter((u) => u.blocked).length,
@@ -142,9 +141,12 @@ function OverviewTab() {
 
   const LABELS = {
     totalPosts: "Posts zose",
-    waiting: "⏳ Zitegereje",
-    matched: "🟢 Zahuye",
-    closed: "✅ Zarangiye",
+    newPosts: "🆕 Nshya",
+    reviewing: "🔎 Zisuzumwa",
+    contacted: "📞 Zavugwanye",
+    negotiating: "🤝 Ziganirwaho",
+    bought: "✅ Zaguwe",
+    closed: "🔒 Zarangiye",
     totalUsers: "Abakoresha",
     blockedUsers: "Bafunzwe",
     openReports: "Raporo zifunguye",
@@ -167,9 +169,6 @@ function PostsTab() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
   const [busyId, setBusyId] = useState(null);
-  const [matchOffer, setMatchOffer] = useState("");
-  const [matchNeed, setMatchNeed] = useState("");
-  const [matching, setMatching] = useState(false);
 
   const load = useCallback(async () => {
     setLoading(true);
@@ -201,63 +200,11 @@ function PostsTab() {
     }
   }
 
-  async function doMatch() {
-    if (!matchOffer || !matchNeed) return;
-    setMatching(true);
-    setError(null);
-    try {
-      await adminMatchPosts(matchOffer, matchNeed, getToken());
-      setMatchOffer("");
-      setMatchNeed("");
-      await load();
-    } catch (err) {
-      setError(err.message);
-    } finally {
-      setMatching(false);
-    }
-  }
-
-  const offers = posts.filter((p) => p.type === "offer" && p.status === "waiting");
-  const needs = posts.filter((p) => p.type === "need" && p.status === "waiting");
-
   if (loading) return <p className="am-empty">Turimo gupakira...</p>;
 
   return (
     <>
       {error && <div className="am-error-banner">{error}</div>}
-
-      <div className="am-admin-card">
-        <strong style={{ fontSize: 13.5 }}>🤝 Huza intoki (manual match)</strong>
-        <div style={{ display: "flex", gap: 8, marginTop: 10, flexWrap: "wrap" }}>
-          <select
-            value={matchOffer}
-            onChange={(e) => setMatchOffer(e.target.value)}
-            style={{ flex: 1, minWidth: 140, padding: 10, borderRadius: 10 }}
-          >
-            <option value="">Hitamo offer...</option>
-            {offers.map((o) => (
-              <option key={o.id} value={o.id}>
-                {o.product} — {o.location}
-              </option>
-            ))}
-          </select>
-          <select
-            value={matchNeed}
-            onChange={(e) => setMatchNeed(e.target.value)}
-            style={{ flex: 1, minWidth: 140, padding: 10, borderRadius: 10 }}
-          >
-            <option value="">Hitamo need...</option>
-            {needs.map((n) => (
-              <option key={n.id} value={n.id}>
-                {n.product} — {n.location}
-              </option>
-            ))}
-          </select>
-          <button className="am-btn" disabled={!matchOffer || !matchNeed || matching} onClick={doMatch}>
-            {matching ? "..." : "Huza"}
-          </button>
-        </div>
-      </div>
 
       {posts.length === 0 ? (
         <p className="am-empty">Nta posts ahari.</p>
@@ -280,18 +227,9 @@ function PostsTab() {
                 <p className="am-post-line">{p.type === "offer" ? "👤" : "🏢"} {p.name || "—"}</p>
                 <p className="am-mono">☎ {p.whatsapp || "—"}</p>
               </div>
-              <span className={`am-status-pill ${p.status || "waiting"}`}>{p.status || "waiting"}</span>
+              <span className={`am-status-pill ${p.status || "new"}`}>{p.status || "new"}</span>
             </div>
             <div className="am-admin-row-actions">
-              {p.status === "matched" && (
-                <button
-                  className="am-btn secondary"
-                  disabled={busyId === p.id}
-                  onClick={() => act(p.id, adminCloseDeal)}
-                >
-                  Close deal
-                </button>
-              )}
               <button
                 className="am-btn danger"
                 disabled={busyId === p.id}
@@ -331,18 +269,6 @@ function UsersTab() {
     load();
   }, [load]);
 
-  async function toggleBlock(user) {
-    setBusyId(user.id);
-    try {
-      await adminSetUserBlocked(user.id, !user.blocked, getToken());
-      await load();
-    } catch (err) {
-      setError(err.message);
-    } finally {
-      setBusyId(null);
-    }
-  }
-
   async function remove(id) {
     setBusyId(id);
     try {
@@ -378,10 +304,11 @@ function UsersTab() {
               </span>
             </div>
             <div className="am-admin-row-actions">
-              <button className="am-btn secondary" disabled={busyId === u.id} onClick={() => toggleBlock(u)}>
-                {u.blocked ? "Kuraho block" : "Block"}
-              </button>
-              <button className="am-btn danger" disabled={busyId === u.id} onClick={() => remove(u.id)}>
+              <button
+                className="am-btn danger"
+                disabled={busyId === u.id}
+                onClick={() => remove(u.id)}
+              >
                 Siba
               </button>
             </div>
@@ -396,7 +323,6 @@ function ReportsTab() {
   const [reports, setReports] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
-  const [busyId, setBusyId] = useState(null);
 
   const load = useCallback(async () => {
     setLoading(true);
@@ -416,29 +342,19 @@ function ReportsTab() {
     load();
   }, [load]);
 
-  async function close(id) {
-    setBusyId(id);
-    try {
-      await adminCloseReport(id, getToken());
-      await load();
-    } catch (err) {
-      setError(err.message);
-    } finally {
-      setBusyId(null);
-    }
-  }
-
   if (loading) return <p className="am-empty">Turimo gupakira...</p>;
   if (error) return <div className="am-error-banner">{error}</div>;
 
   return reports.length === 0 ? (
-    <p className="am-empty">Nta raporo zihari ubu — ibi bizagaragara igihe nta match yaboneka.</p>
+    <p className="am-empty">Nta raporo zihari ubu.</p>
   ) : (
     reports.map((r) => (
       <div className="am-admin-card" key={r.id}>
         <div className="am-admin-card-top">
           <div>
-            <strong>{r.report_type === "buyer_need" ? "🛒" : "🌾"} {r.product}</strong>
+            <strong>
+              {r.report_type === "seller_supply" ? "🌾" : "📄"} {r.product}
+            </strong>
             <p className="am-post-line">
               {r.quantity} {r.unit || "kg"} · 📍 {r.location}
             </p>
@@ -448,13 +364,6 @@ function ReportsTab() {
             {r.status}
           </span>
         </div>
-        {r.status === "open" && (
-          <div className="am-admin-row-actions">
-            <button className="am-btn secondary" disabled={busyId === r.id} onClick={() => close(r.id)}>
-              Funga raporo
-            </button>
-          </div>
-        )}
       </div>
     ))
   );
@@ -494,7 +403,7 @@ export default function AdminDashboard() {
     <div className="am-admin-root">
       <div className="am-admin-shell">
         <div className="am-admin-header">
-          <h1>🔐 Agri Market — Admin</h1>
+          <h1>🔐 Zao Deal — Admin</h1>
           <button
             className="am-btn secondary"
             onClick={() => {

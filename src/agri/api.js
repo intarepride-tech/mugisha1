@@ -17,7 +17,12 @@
 //   - There is no /api/admin/dashboard route — admin login is validated
 //     with a real admin call (adminUsers), and overview stats are computed
 //     client-side from posts/users/reports.
-//   - Admin close-deal and block/unblock are PATCH, not POST.
+//
+// REMOVED (no longer part of the system):
+//   - adminSetUserBlocked  (PATCH /api/admin/users/:id/block)
+//   - adminMatchPosts      (POST  /api/admin/match)
+//   - adminCloseDeal       (PATCH /api/admin/posts/:id/close)
+//   - adminCloseReport     (PATCH /api/admin/reports/:id/close)
 // ---------------------------------------------------------------------------
 
 const DEFAULT_API_BASE = "https://mugisha.intarepride.workers.dev";
@@ -44,10 +49,6 @@ const ADMIN_ENDPOINTS = {
   reports: "/api/admin/reports",
   deletePost: (id) => `/api/admin/posts/${id}`,
   deleteUser: (id) => `/api/admin/users/${id}`,
-  setUserBlocked: (id) => `/api/admin/users/${id}/block`, // PATCH { blocked }
-  matchPosts: "/api/admin/match", // POST { offerId, needId }
-  closePost: (id) => `/api/admin/posts/${id}/close`, // PATCH
-  closeReport: (id) => `/api/admin/reports/${id}/close`, // PATCH
 };
 
 // The Worker's /api/search direction is the opposite of what you'd guess:
@@ -287,30 +288,6 @@ export function adminDeletePost(id, token) {
 
 export function adminDeleteUser(id, token) {
   return request(ADMIN_ENDPOINTS.deleteUser(id), { method: "DELETE", token });
-}
-
-export function adminSetUserBlocked(id, blocked, token) {
-  return request(ADMIN_ENDPOINTS.setUserBlocked(id), {
-    method: "PATCH",
-    token,
-    body: { blocked },
-  });
-}
-
-export function adminMatchPosts(offerId, needId, token) {
-  return request(ADMIN_ENDPOINTS.matchPosts, {
-    method: "POST",
-    token,
-    body: { offerId, needId },
-  });
-}
-
-export function adminCloseDeal(id, token) {
-  return request(ADMIN_ENDPOINTS.closePost(id), { method: "PATCH", token });
-}
-
-export function adminCloseReport(id, token) {
-  return request(ADMIN_ENDPOINTS.closeReport(id), { method: "PATCH", token });
 }
 
 export { ApiError };
